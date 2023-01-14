@@ -1,9 +1,11 @@
+
+#pragma once
+
 #include <frc/TimedRobot.h>
-#include <frc/XboxController.h>
-#include <frc/PS4Controller.h>
-#include <frc/drive/DifferentialDrive.h>
-#include <frc/motorcontrol/PWMSparkMax.h>
-#include <frc/motorcontrol/MotorControllerGroup.h>
+#include <frc2/command/button/CommandXboxController.h>
+#include <frc2/command/button/CommandPS4Controller.h>
+
+#include "drivetrain/DriveSubsystem.h"
 
 #include <rev/CANSparkMax.h>
 
@@ -11,19 +13,11 @@ class Robot : public frc::TimedRobot {
 public:
   void RobotInit() override;
   void TeleopPeriodic() override;
+  void TestPeriodic() override;
 
 private:
-  // left side
-  rev::CANSparkMax left{11, rev::CANSparkMax::MotorType::kBrushless};
-  rev::CANSparkMax leftFollow{12, rev::CANSparkMax::MotorType::kBrushless};
-  rev::CANSparkMax right{21, rev::CANSparkMax::MotorType::kBrushless};
-  rev::CANSparkMax rightFollow{22, rev::CANSparkMax::MotorType::kBrushless};
-
-  // drive
-  frc::DifferentialDrive drive{left, right};
-
-  // controller
-  frc::PS4Controller controller{0};
+  DriveSubsystem drive;
+  frc2::CommandPS4Controller controller{0};
 };
 
 #ifndef RUNNING_FRC_TESTS
