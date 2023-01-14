@@ -6,8 +6,8 @@ namespace rmb {
 
 DifferentialDrive::DifferentialDrive(std::shared_ptr<LinearVelocityController> l, 
                                      std::shared_ptr<LinearVelocityController> r,
-                                     frc::DifferentialDriveKinematics& k) : left(l), right(r), 
-                                     kinematics(k) {}
+                                     frc::DifferentialDriveKinematics& k) : 
+                                     left(l), right(r), kinematics(k) {}
 
 void DifferentialDrive::arcadeDrive(double xSpeed, double zRotation) {
   auto wheelSpeeds = frc::DifferentialDrive::ArcadeDriveIK(xSpeed, zRotation);

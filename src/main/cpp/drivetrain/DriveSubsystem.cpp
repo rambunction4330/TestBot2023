@@ -51,4 +51,6 @@ void DriveSubsystem::tankDrive(frc2::CommandPS4Controller& controller) {
 }
 
 // This method will be called once per scheduler run
-void DriveSubsystem::Periodic() {}
+void DriveSubsystem::Periodic() {
+  odometry.updatePose();
+}

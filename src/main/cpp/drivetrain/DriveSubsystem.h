@@ -4,6 +4,9 @@
 
 #pragma once
 
+#include <thread>
+#include <AHRS.h>
+
 #include <frc2/command/button/CommandJoystick.h>
 #include <frc2/command/button/CommandXboxController.h>
 #include <frc2/command/button/CommandPS4Controller.h>
@@ -11,6 +14,7 @@
 #include <rmb/motorcontrol/feedback/LinearVelocityFeedbackController.h>
 #include <rmb/motorcontrol/sparkmax/SparkMaxVelocityController.h>
 #include <rmb/drive/DifferentialDrive.h>
+#include <rmb/drive/DifferentialOdometry.h>
 
 #include <frc2/command/SubsystemBase.h>
 
@@ -63,6 +67,8 @@ namespace DriveConstants {
   static frc::DifferentialDriveKinematics kinematics{ 27.75_in /* <- track width */};
 
   const units::meter_t wheelDiameter = 7_in;
+
+  const frc::SerialPort::Port gyroPort = frc::SerialPort::Port::kMXP;
 }
 
 class DriveSubsystem : public frc2::SubsystemBase {
@@ -115,5 +121,13 @@ class DriveSubsystem : public frc2::SubsystemBase {
     )
   };
 
-  rmb::DifferentialDrive drive{ left, right, DriveConstants::kinematics };
+  rmb::DifferentialDrive drive { 
+    left, right, DriveConstants::kinematics 
+  };
+
+  rmb::DifferentialOdometry odometry { 
+    left, right, 
+    DriveConstants::kinematics, 
+    std::make_shared<AHRS>(DriveConstants::gyroPort) 
+  };
 };
