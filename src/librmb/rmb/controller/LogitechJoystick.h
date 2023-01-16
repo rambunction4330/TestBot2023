@@ -58,9 +58,9 @@ double GetThrottle() const {
 frc2::Trigger ThrottleLessThan(double threshold) const { return AxisLessThan(Axes::throttle, threshold); }
 frc2::Trigger ThrottleMoreThan(double threshold) const{ return AxisGreaterThan(Axes::throttle, threshold); }
 
-bool getTrigger() const { return GetRawButton(1); }
-bool getTriggerPressed() { return GetRawButtonPressed(1); }
-bool getTriggerReleased() { return GetRawButtonReleased(1); }
+bool GetTrigger() const { return GetRawButton(1); }
+bool GetTriggerPressed() { return GetRawButtonPressed(1); }
+bool GetTriggerReleased() { return GetRawButtonReleased(1); }
 frc2::Trigger Trigger() const { return Button(1); }
 
 private:

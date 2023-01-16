@@ -7,33 +7,32 @@
 #include <thread>
 #include <AHRS.h>
 
-#include <frc2/command/button/CommandJoystick.h>
-#include <frc2/command/button/CommandXboxController.h>
-#include <frc2/command/button/CommandPS4Controller.h>
-
 #include <rmb/motorcontrol/feedback/LinearVelocityFeedbackController.h>
 #include <rmb/motorcontrol/sparkmax/SparkMaxVelocityController.h>
 #include <rmb/drive/DifferentialDrive.h>
 #include <rmb/drive/DifferentialOdometry.h>
+
+#include <rmb/controller/LogitechGamepad.h>
+#include <rmb/controller/LogitechJoystick.h>
 
 #include <frc2/command/SubsystemBase.h>
 
 namespace DriveConstants {
 
   const rmb::SparkMaxVelocityController::MotorConfig leftLeader {
-    21, rev::CANSparkMax::MotorType::kBrushless, true
+    11, rev::CANSparkMax::MotorType::kBrushless, true
   };
 
   const rmb::SparkMaxVelocityController::MotorConfig leftFollower {
-    22, rev::CANSparkMax::MotorType::kBrushless, false
+    12, rev::CANSparkMax::MotorType::kBrushless, false
   };
 
   const rmb::SparkMaxVelocityController::MotorConfig rightLeader {
-    11, rev::CANSparkMax::MotorType::kBrushless, false
+    21, rev::CANSparkMax::MotorType::kBrushless, false
   };
 
   const rmb::SparkMaxVelocityController::MotorConfig rightFollower {
-    12, rev::CANSparkMax::MotorType::kBrushless, false
+    22, rev::CANSparkMax::MotorType::kBrushless, false
   };
 
   const rmb::SparkMaxVelocityController::PIDConfig pidConfig {
@@ -76,18 +75,16 @@ class DriveSubsystem : public frc2::SubsystemBase {
   DriveSubsystem() = default;
 
   void arcadeDrive(double xSpeed, double zRotation);
-  void arcadeDrive(frc2::CommandJoystick& stick);
-  void arcadeDrive(frc2::CommandXboxController& controller);
-  void arcadeDrive(frc2::CommandPS4Controller& controller);
+  void arcadeDrive(const rmb::LogitechJoystick& joystick);
+  void arcadeDrive(const rmb::LogitechGamepad& gamepad);
 
   void curvatureDrive(double xSpeed, double zRotation, bool turnInPlace);
-  void curvatureDrive(frc2::CommandJoystick& stick);
-  void curvatureDrive(frc2::CommandXboxController& controller);
-  void curvatureDrive(frc2::CommandPS4Controller& controller);
+  void curvatureDrive(const rmb::LogitechJoystick& stick);
+  void curvatureDrive(const rmb::LogitechGamepad& controller);
 
   void tankDrive(double leftSpeed, double rightSpeed);
-  void tankDrive(frc2::CommandXboxController& controller);
-  void tankDrive(frc2::CommandPS4Controller& controller);
+  void tankDirve(const rmb::LogitechJoystick& left, const rmb::LogitechJoystick& right);
+  void tankDrive(const rmb::LogitechGamepad& gamepad);
 
   /**
    * Will be called periodically whenever the CommandScheduler runs.

@@ -10,44 +10,37 @@ void DriveSubsystem::arcadeDrive(double xSpeed, double zRotation) {
   drive.arcadeDrive(xSpeed, zRotation);
 }
 
-void DriveSubsystem::arcadeDrive(frc2::CommandJoystick& stick) {
-  arcadeDrive(stick.GetY(), stick.GetTwist());
+void DriveSubsystem::arcadeDrive(const rmb::LogitechJoystick& joystick) {
+  arcadeDrive(joystick.GetX(), joystick.GetTwist());
 }
 
-void DriveSubsystem::arcadeDrive(frc2::CommandXboxController& controller) {
-  arcadeDrive(controller.GetRawAxis(1), controller.GetRawAxis(2));
+void DriveSubsystem::arcadeDrive(const rmb::LogitechGamepad& gamepad) {
+  arcadeDrive(gamepad.GetLeftX(), gamepad.GetRightY());
 }
 
-void DriveSubsystem::arcadeDrive(frc2::CommandPS4Controller& controller) {
-  arcadeDrive(controller.GetRawAxis(1), controller.GetRawAxis(2));
-}
 
 void DriveSubsystem::curvatureDrive(double xSpeed, double zRotation, bool turnInPlace) {
   drive.curvatureDrive(xSpeed, zRotation, turnInPlace);
 }
 
-void DriveSubsystem::curvatureDrive(frc2::CommandJoystick& stick) {
-  curvatureDrive(stick.GetY(), stick.GetTwist(), stick.GetTrigger());
+void DriveSubsystem::curvatureDrive(const rmb::LogitechJoystick& stick) {
+  curvatureDrive(stick.GetX(), stick.GetTwist(), stick.GetTrigger());
 }
 
-void DriveSubsystem::curvatureDrive(frc2::CommandXboxController& controller) {
-  curvatureDrive(controller.GetRawAxis(1), controller.GetRawAxis(2), controller.GetLeftBumper());
-}
-
-void DriveSubsystem::curvatureDrive(frc2::CommandPS4Controller& controller) {
-  curvatureDrive(controller.GetRawAxis(1), controller.GetRawAxis(2), controller.GetL2Button());
+void DriveSubsystem::curvatureDrive(const rmb::LogitechGamepad& controller) {
+  curvatureDrive(controller.GetLeftX(), controller.GetRightY(), controller.GetLeftBumper());
 }
 
 void DriveSubsystem::tankDrive(double leftSpeed, double rightSpeed) {
   drive.tankDrive(leftSpeed, rightSpeed);
 }
 
-void DriveSubsystem::tankDrive(frc2::CommandXboxController& controller) {
-  tankDrive(controller.GetRawAxis(1), controller.GetRawAxis(3));
+void DriveSubsystem::tankDirve(const rmb::LogitechJoystick& left, const rmb::LogitechJoystick& right) {
+  tankDrive(left.GetX(), right.GetX());
 }
 
-void DriveSubsystem::tankDrive(frc2::CommandPS4Controller& controller) {
-  tankDrive(controller.GetRawAxis(1), controller.GetRawAxis(3));
+void DriveSubsystem::tankDrive(const rmb::LogitechGamepad& gamepad) {
+  tankDrive(gamepad.GetLeftX(), gamepad.GetRightX());
 }
 
 // This method will be called once per scheduler run
