@@ -164,7 +164,7 @@ units::radian_t SparkMaxPositionController::getPosition() const {
   return 0_rad;
 }
 
-void SparkMaxPositionController::zeroPosition(units::radian_t offset = 0_rad) {  
+void SparkMaxPositionController::zeroPosition(units::radian_t offset) {  
 
   switch (encoderType) {
   case EncoderType::HallSensor:

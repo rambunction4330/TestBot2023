@@ -23,7 +23,7 @@ namespace SparkMaxPositionControllerHelper {
 
   struct PIDConfig {
     double p = 0.0, i = 0.0, d = 0.0, ff = 0.0;
-    units::radians_per_second_t tolerance = 0.0_rad_per_s;
+    units::turn_t tolerance = 0.0_rad;
     double iZone = 0.0, iMaxAccumulator = 0.0;
     double maxOutput = 1.0, minOutput = -1.0;
   };
