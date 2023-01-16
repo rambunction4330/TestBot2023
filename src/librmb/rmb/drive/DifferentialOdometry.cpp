@@ -56,11 +56,13 @@ DifferentialOdometry::DifferentialOdometry(
                  rightEncoder->getPosition(), initalPose) {}
 
 frc::Pose2d DifferentialOdometry::getPose() const {
+  std::lock_guard<std::mutex> lock(visionThreadMutex);
   return poseEstimator.GetEstimatedPosition();
 }
 
 
 frc::Pose2d DifferentialOdometry::updatePose() {
+  std::lock_guard<std::mutex> lock(visionThreadMutex);
   return poseEstimator.Update(gyro->GetRotation2d(), 
                               leftEncoder->getPosition(), 
                               rightEncoder->getPosition());
@@ -68,6 +70,7 @@ frc::Pose2d DifferentialOdometry::updatePose() {
 
 
 void DifferentialOdometry::resetPose(const frc::Pose2d& pose) {
+  std::lock_guard<std::mutex> lock(visionThreadMutex);
   poseEstimator.ResetPosition(gyro->GetRotation2d(), 
                               leftEncoder->getPosition(), 
                               rightEncoder->getPosition(),

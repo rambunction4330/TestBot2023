@@ -116,6 +116,6 @@ private:
 
   // Vision Handleing
   NT_Listener visionListener;
-  std::mutex visionThreadMutex;
+  mutable std::mutex visionThreadMutex;
 };
 } // namespace rmb
