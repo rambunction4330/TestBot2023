@@ -6,18 +6,14 @@
 namespace rmb {
 
 SparkMaxVelocityController::SparkMaxVelocityController(const MotorConfig motorConfig, const PIDConfig pidConfig, 
-                                                       const rmb::Feedforward<units::radians>& feedforward,
                                                        const ProfileConfig profileConfig, const FeedbackConfig feedbackConfig, 
                                                        std::initializer_list<const MotorConfig> followerList,
                                                        std::function<void(rev::CANSparkMax&)> customConfig) :
                                                        sparkMax(motorConfig.id, motorConfig.motorType), 
                                                        pidController(sparkMax.GetPIDController()),
-                                                       feedforward(feedforward), tolerance(pidConfig.tolerance),
+                                                       tolerance(pidConfig.tolerance),
                                                        encoderType(feedbackConfig.encoderType), 
                                                        gearRatio(feedbackConfig.gearRatio) {
-
-  using EncoderType = SparkMaxVelocityControllerHelper::EncoderType;
-  using LimitSwitchConfig = SparkMaxVelocityControllerHelper::LimitSwitchConfig;
 
   // Restore defaults to ensure a consistent and clean slate.
   sparkMax.RestoreFactoryDefaults();
@@ -29,6 +25,7 @@ SparkMaxVelocityController::SparkMaxVelocityController(const MotorConfig motorCo
   pidController.SetP(pidConfig.p);
   pidController.SetI(pidConfig.i);
   pidController.SetD(pidConfig.d);
+  pidController.SetD(pidConfig.ff);
   pidController.SetIZone(pidConfig.iZone);
   pidController.SetIMaxAccum(pidConfig.iMaxAccumulator);
   pidController.SetOutputRange(pidConfig.minOutput, pidConfig.maxOutput);
@@ -98,8 +95,8 @@ SparkMaxVelocityController::SparkMaxVelocityController(const MotorConfig motorCo
 }
 
 void SparkMaxVelocityController::setVelocity(units::radians_per_second_t velocity) {
-  pidController.SetReference(units::revolutions_per_minute_t(velocity).to<double>() / gearRatio, controlType,
-                             0, feedforward.calculate(velocity, getPosition()).to<double>());
+  targetVelocity = velocity;
+  pidController.SetReference(units::revolutions_per_minute_t(targetVelocity).to<double>() / gearRatio, controlType);
 }
 
 units::radians_per_second_t SparkMaxVelocityController::getTargetVelocity() const {

@@ -1,170 +1,193 @@
-// #include "rmb/motorcontrol/sparkmax/SparkMaxPositionController.h"
 
-// #include <algorithm>
+#include "rmb/motorcontrol/sparkmax/SparkMaxPositionController.h"
 
-// #include <units/angle.h>
-// #include <units/base.h>
-// #include <units/length.h>
+namespace rmb {
+SparkMaxPositionController::SparkMaxPositionController(const MotorConfig motorConfig, const PIDConfig pidConfig, 
+                                                       const rmb::Feedforward<units::radians>& feedforward,
+                                                       const Range range, const ProfileConfig profileConfig, 
+                                                       const FeedbackConfig feedbackConfig, 
+                                                       std::initializer_list<const MotorConfig> followerList,
+                                                       std::function<void(rev::CANSparkMax&)> customConfig) :
+                                                       sparkMax(motorConfig.id, motorConfig.motorType), 
+                                                       pidController(sparkMax.GetPIDController()),
+                                                       tolerance(pidConfig.tolerance),
+                                                       encoderType(feedbackConfig.encoderType), 
+                                                       gearRatio(feedbackConfig.gearRatio) {
 
-// #include "rmb/motorcontrol/sparkmax/SparkMaxError.h"
-// #include <string>
-// #include <wpi/raw_ostream.h>
+  // Restore defaults to ensure a consistent and clean slate.
+  sparkMax.RestoreFactoryDefaults();
 
-// template <typename U>
-// rmb::SparkMaxPositionController<U>::SparkMaxPositionController(int deviceID)
-//     : sparkMax(deviceID, rev::CANSparkMax::MotorType::kBrushless),
-//       sparkMaxEncoder(std::make_unique<rev::SparkMaxRelativeEncoder>(
-//           sparkMax.GetEncoder())),
-//       sparkMaxPIDController(sparkMax.GetPIDController()),
-//       conversion(Distance_t(1) / units::radian_t(1)),
-//       feedforward(noFeedforward<U>) {}
+  // Motor Configuration
+  sparkMax.SetInverted(motorConfig.inverted);
 
-// template <typename U>
-// rmb::SparkMaxPositionController<U>::SparkMaxPositionController(
-//     int deviceID, const PIDConfig &config, ConversionUnit_t conversionFactor,
-//     const Feedforward<U> &ff, std::initializer_list<Follower> followerList,
-//     bool alternateEncoder, int ticksPerRotation,
-//     rev::CANSparkMax::MotorType motorType)
-//     : sparkMax(deviceID, motorType),
-//       sparkMaxEncoder(
-//           alternateEncoder
-//               ? std::unique_ptr<rev::RelativeEncoder>(
-//                     std::make_unique<rev::SparkMaxRelativeEncoder>(
-//                         sparkMax.GetEncoder(
-//                             rev::SparkMaxRelativeEncoder::Type::kQuadrature,
-//                             ticksPerRotation)))
-//               : std::unique_ptr<rev::RelativeEncoder>(
-//                     std::make_unique<rev::SparkMaxRelativeEncoder>(
-//                         sparkMax.GetEncoder()))),
-//       sparkMaxPIDController(sparkMax.GetPIDController()),
-//       conversion(conversionFactor), feedforward(ff) {
+  // PID Configuration
+  pidController.SetP(pidConfig.p);
+  pidController.SetI(pidConfig.i);
+  pidController.SetD(pidConfig.d);
+  pidController.SetFF(pidConfig.ff);
+  pidController.SetIZone(pidConfig.iZone);
+  pidController.SetIMaxAccum(pidConfig.iMaxAccumulator);
+  pidController.SetOutputRange(pidConfig.minOutput, pidConfig.maxOutput);
 
-//   CHECK_REVLIB_ERROR(sparkMax.RestoreFactoryDefaults());
-//   // CHECK_REVLIB_ERROR(sparkMaxPIDController.SetFeedbackDevice(*sparkMaxEncoder));
+  // Range
+  pidController.SetPositionPIDWrappingEnabled(range.isContinouse);
+  pidController.SetPositionPIDWrappingMinInput(units::turn_t(range.minPosition).to<double>() / gearRatio);
+  pidController.SetPositionPIDWrappingMaxInput(units::turn_t(range.maxPosition).to<double>() / gearRatio);
 
-//   // configure pid consts
-//   CHECK_REVLIB_ERROR(sparkMaxPIDController.SetP(config.p));
-//   CHECK_REVLIB_ERROR(sparkMaxPIDController.SetI(config.i));
-//   CHECK_REVLIB_ERROR(sparkMaxPIDController.SetD(config.d));
-//   CHECK_REVLIB_ERROR(sparkMaxPIDController.SetFF(config.f));
-//   CHECK_REVLIB_ERROR(sparkMaxPIDController.SetIZone(config.iZone));
-//   CHECK_REVLIB_ERROR(
-//       sparkMaxPIDController.SetIMaxAccum(config.iMaxAccumulator));
-//   CHECK_REVLIB_ERROR(
-//       sparkMaxPIDController.SetOutputRange(config.minOutput, config.maxOutput));
+  // Motion Profiling Configuration
+  controlType = rev::CANSparkMax::ControlType::kPosition;
+  if (profileConfig.useSmartMotion) {
+    controlType = rev::CANSparkMax::ControlType::kSmartMotion;
+    pidController.SetSmartMotionMaxVelocity(units::revolutions_per_minute_t(profileConfig.maxVelocity).to<double>() / gearRatio);
+    pidController.SetSmartMotionMaxAccel(units::revolutions_per_minute_per_second_t(profileConfig.maxAcceleration).to<double>() / gearRatio);
+    pidController.SetSmartMotionAccelStrategy(profileConfig.accelStrategy);
+  }
 
-//   if (config.usingSmartMotion) {
-//     CHECK_REVLIB_ERROR(
-//         sparkMaxPIDController.SetSmartMotionAllowedClosedLoopError(
-//             RawUnit_t(config.allowedErr / conversion).to<double>()));
-//     CHECK_REVLIB_ERROR(sparkMaxPIDController.SetSmartMotionMaxVelocity(
-//         RawVelocity_t(config.maxVelocity / conversion).to<double>()));
-//     CHECK_REVLIB_ERROR(sparkMaxPIDController.SetSmartMotionMaxAccel(
-//         RawAccel_t(config.maxAccel / conversion).to<double>()));
-//     CHECK_REVLIB_ERROR(sparkMaxPIDController.SetSmartMotionAccelStrategy(
-//         config.accelStrategy));
-//     CHECK_REVLIB_ERROR(sparkMaxPIDController.SetSmartMotionMinOutputVelocity(
-//         RawVelocity_t(config.minVelocity / conversion).to<double>()));
+  // Encoder Configuation
 
-//     controlType = rev::CANSparkMax::ControlType::kSmartMotion;
+  switch (encoderType) {
+  case EncoderType::HallSensor:
+    encoder = std::make_unique<rev::SparkMaxRelativeEncoder>(sparkMax.GetEncoder(rev::SparkMaxRelativeEncoder::Type::kHallSensor, feedbackConfig.countPerRev));
+    break;
+  case EncoderType::Quadrature:
+    encoder = std::make_unique<rev::SparkMaxRelativeEncoder>(sparkMax.GetEncoder(rev::SparkMaxRelativeEncoder::Type::kQuadrature, feedbackConfig.countPerRev));
+    break;
+  case EncoderType::Alternate:
+    encoder = std::make_unique<rev::SparkMaxAlternateEncoder>(sparkMax.GetAlternateEncoder(feedbackConfig.countPerRev));
+    break;
+  case EncoderType::Absolute:
+    encoder = std::make_unique<rev::SparkMaxAbsoluteEncoder>(sparkMax.GetAbsoluteEncoder(rev::SparkMaxAbsoluteEncoder::Type::kDutyCycle));
+    break;
+  }
 
-//     if (&feedforward != &noFeedforward<U>) {
-//       CHECK_REVLIB_ERROR(sparkMaxPIDController.SetFF(
-//           units::unit_t<units::inverse<RawVelocity>>(
-//               feedforward.getVelocityGain() * conversion / 12_V)
-//               .to<double>()));
-//     }
-//   } else {
-//     controlType = rev::CANSparkMax::ControlType::kPosition;
-//   }
+  pidController.SetFeedbackDevice(*encoder);
+  
+  // Limit Switch Configuaration
 
-//   followers.reserve(followerList.size());
-//   for (const auto &follower : followerList) {
-//     followers.emplace_back(
-//         new rev::CANSparkMax(follower.id, follower.motorType));
-//     followers.back()->Follow(sparkMax, follower.inverted);
-//   }
+  switch(feedbackConfig.forwardSwitch) {
+    case LimitSwitchConfig::Disabled:
+      sparkMax.GetForwardLimitSwitch(rev::SparkMaxLimitSwitch::Type::kNormallyOpen).EnableLimitSwitch(false);
+      break;
+    case LimitSwitchConfig::NormalyOpen:
+      sparkMax.GetForwardLimitSwitch(rev::SparkMaxLimitSwitch::Type::kNormallyOpen).EnableLimitSwitch(true);
+      break;
+    case LimitSwitchConfig::NormalyClosed:
+      sparkMax.GetForwardLimitSwitch(rev::SparkMaxLimitSwitch::Type::kNormallyClosed).EnableLimitSwitch(true);
+      break;
+  }
 
-//   allowedError = config.allowedErr;
-// }
+  switch(feedbackConfig.reverseSwitch) {
+    case LimitSwitchConfig::Disabled:
+      sparkMax.GetReverseLimitSwitch(rev::SparkMaxLimitSwitch::Type::kNormallyOpen).EnableLimitSwitch(false);
+      break;
+    case LimitSwitchConfig::NormalyOpen:
+      sparkMax.GetReverseLimitSwitch(rev::SparkMaxLimitSwitch::Type::kNormallyOpen).EnableLimitSwitch(true);
+      break;
+    case LimitSwitchConfig::NormalyClosed:
+      sparkMax.GetReverseLimitSwitch(rev::SparkMaxLimitSwitch::Type::kNormallyClosed).EnableLimitSwitch(true);
+      break;
+  }
 
-// template <typename U>
-// void rmb::SparkMaxPositionController<U>::setPosition(Distance_t position) {
-//   double setPoint = RawUnit_t((position + reference) / conversion).to<double>();
-//   std::clamp<double>(setPoint, minPosition.to<double>(),
-//                      maxPosition.to<double>());
-//   CHECK_REVLIB_ERROR(sparkMaxPIDController.SetReference(
-//       setPoint, controlType, 0,
-//       units::volt_t(feedforward.calculateStatic(
-//                         (position - getPosition()) / 1_s, position))
-//           .to<double>()));
-// }
+  // Follower Congiguration
+  for(auto& follower : followerList) {
+    followers.emplace_back(std::make_unique<rev::CANSparkMax>(follower.id, follower.motorType));
+    followers.back()->Follow(sparkMax, follower.inverted);
+  }
 
-// template <typename U>
-// typename rmb::SparkMaxPositionController<U>::Distance_t
+  // Run Custome Config
+  customConfig(sparkMax);
 
-// rmb::SparkMaxPositionController<U>::getPosition() const {
-//   RawUnit_t val = RawUnit_t(sparkMaxEncoder->GetPosition());
-//   std::clamp<RawUnit_t>(val, minPosition, maxPosition);
-//   return Distance_t((val * conversion)) - reference;
-// }
+}
 
-// template <typename U>
-// typename rmb::SparkMaxPositionController<U>::Velocity_t
-// rmb::SparkMaxPositionController<U>::getVelocity() {
-//   return Velocity_t(RawVelocity_t(sparkMaxEncoder->GetVelocity()) * conversion);
-// }
+void SparkMaxPositionController::setPosition(units::radian_t position) {
+  targetPosition = position;
+  pidController.SetReference(units::turn_t(targetPosition).to<double>() / gearRatio, controlType);
+}
 
-// template <typename U>
-// void rmb::SparkMaxPositionController<U>::resetReference(Distance_t distance) {
-//   reference =
-//       (RawUnit_t(sparkMaxEncoder->GetPosition()) * conversion) - distance;
-// }
+units::radian_t SparkMaxPositionController::getTargetPosition() const {
+  return targetPosition;
+}
 
-// template <typename U>
-// void rmb::SparkMaxPositionController<U>::setMaxPosition(Distance_t max) {
-//   maxPosition = RawUnit_t(max / conversion);
-// }
+units::radian_t SparkMaxPositionController::getMinPosition() const {
+  return units::turn_t(pidController.GetPositionPIDWrappingMinInput() * gearRatio);
+}
 
-// template <typename U>
-// typename rmb::SparkMaxPositionController<U>::Distance_t
-// rmb::SparkMaxPositionController<U>::getMaxPosition() {
-//   return Distance_t(maxPosition * conversion);
-// }
+units::radian_t SparkMaxPositionController::getMaxPosition() const {
+  return units::turn_t(pidController.GetPositionPIDWrappingMaxInput() * gearRatio);
+}
 
-// template <typename U>
-// void rmb::SparkMaxPositionController<U>::setMinPosition(Distance_t min) {
-//   minPosition = RawUnit_t(min / conversion);
-// }
+void SparkMaxPositionController::disable() {
+  sparkMax.Disable();
+}
 
-// template <typename U>
-// typename rmb::SparkMaxPositionController<U>::Distance_t
-// rmb::SparkMaxPositionController<U>::getMinPosition() {
-//   return Distance_t(minPosition * conversion);
-// }
+void SparkMaxPositionController::stop() {
+  sparkMax.StopMotor();
+}
 
-// template <typename U>
-// bool rmb::SparkMaxPositionController<U>::atPosition(Distance_t position) {
-//   Distance_t motorPosition = getPosition();
-//   return position < (motorPosition + allowedError) &&
-//          position > (motorPosition - allowedError);
-// }
+units::radians_per_second_t SparkMaxPositionController::getVelocity() const {
 
-// template <typename U>
-// void rmb::SparkMaxPositionController<U>::spinOffset(Distance_t position) {
-//   setPosition(position + getPosition());
-// }
+  switch (encoderType) {
+  case EncoderType::HallSensor:
+  case EncoderType::Quadrature: {
+    rev::SparkMaxRelativeEncoder* rel = static_cast<rev::SparkMaxRelativeEncoder*>(encoder.get());
+    return units::revolutions_per_minute_t(rel->GetVelocity() * gearRatio);
+  }
+  case EncoderType::Alternate: {
+    rev::SparkMaxAlternateEncoder* alt = static_cast<rev::SparkMaxAlternateEncoder*>(encoder.get());
+    return units::revolutions_per_minute_t(alt->GetVelocity() * gearRatio);
+  }
+  case EncoderType::Absolute: {
+    rev::AbsoluteEncoder* ab = static_cast<rev::AbsoluteEncoder*>(encoder.get());
+    return units::revolutions_per_minute_t(ab->GetVelocity() * gearRatio);
+  }
+  }
+  return 0_rpm;
+}
 
-// template <typename U>
-// bool rmb::SparkMaxPositionController<U>::canSetPositionTo(Distance_t position) {
-//   return (position < (maxPosition * conversion)) &&
-//          (position > (minPosition * conversion));
-// }
+units::radian_t SparkMaxPositionController::getPosition() const {
 
-// template <typename U>
-// bool rmb::SparkMaxPositionController<U>::canSpinOffsetOf(Distance_t offset) {
-//   return canSetPositionTo(getPosition() + offset);
-// }
+  switch (encoderType) {
+  case EncoderType::HallSensor:
+  case EncoderType::Quadrature: {
+    rev::SparkMaxRelativeEncoder* rel = static_cast<rev::SparkMaxRelativeEncoder*>(encoder.get());
+    return units::turn_t(rel->GetPosition() * gearRatio);
+  }
+  case EncoderType::Alternate: {
+    rev::SparkMaxAlternateEncoder* alt = static_cast<rev::SparkMaxAlternateEncoder*>(encoder.get());
+    return units::turn_t(alt->GetPosition() * gearRatio);
+  }
+  case EncoderType::Absolute: {
+    rev::SparkMaxAbsoluteEncoder* ab = static_cast<rev::SparkMaxAbsoluteEncoder*>(encoder.get());
+    return units::turn_t(ab->GetPosition() * gearRatio);
+  }
+  }
+  return 0_rad;
+}
 
-// template class rmb::SparkMaxPositionController<units::meters>;
-// template class rmb::SparkMaxPositionController<units::radians>;
+void SparkMaxPositionController::zeroPosition(units::radian_t offset = 0_rad) {  
+
+  switch (encoderType) {
+  case EncoderType::HallSensor:
+  case EncoderType::Quadrature: {
+    rev::SparkMaxRelativeEncoder* rel = static_cast<rev::SparkMaxRelativeEncoder*>(encoder.get());
+    rel->SetPosition(units::turn_t(offset).to<double>() / gearRatio);
+    break;
+  }
+  case EncoderType::Alternate: {
+    rev::SparkMaxAlternateEncoder* rel = static_cast<rev::SparkMaxAlternateEncoder*>(encoder.get());
+    rel->SetPosition(units::turn_t(offset).to<double>() / gearRatio);
+    break;
+  }
+  case EncoderType::Absolute: {
+    rev::SparkMaxAbsoluteEncoder* ab = static_cast<rev::SparkMaxAbsoluteEncoder*>(encoder.get());
+    ab->SetZeroOffset(ab->GetPosition() + units::turn_t(offset).to<double>() / gearRatio);
+    break;
+  }
+  }
+}
+
+units::radian_t SparkMaxPositionController::getTolerance() const {
+  return tolerance;
+}
+
+} // namespace rmb

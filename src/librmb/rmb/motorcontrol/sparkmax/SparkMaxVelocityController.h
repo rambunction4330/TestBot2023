@@ -24,7 +24,7 @@ namespace SparkMaxVelocityControllerHelper {
   };
 
   struct PIDConfig {
-    double p = 0.0, i = 0.0, d = 0.0;
+    double p = 0.0, i = 0.0, d = 0.0, ff = 0.0;
     units::radians_per_second_t tolerance = 0.0_rad_per_s;
     double iZone = 0.0, iMaxAccumulator = 0.0;
     double maxOutput = 1.0, minOutput = -1.0;
@@ -67,7 +67,6 @@ public:
   SparkMaxVelocityController(const SparkMaxVelocityController&) = delete;
     
   SparkMaxVelocityController(const MotorConfig motorConfig, const PIDConfig pidConfig = {}, 
-                             const rmb::Feedforward<units::radians>& feedforward = SparkMaxVelocityControllerHelper::defaultFeedforward,
                              const ProfileConfig profileConfig = {}, const FeedbackConfig feedbackConfig = {}, 
                              std::initializer_list<const MotorConfig> followers = {},
                              std::function<void(rev::CANSparkMax&)> customConfig = [](rev::CANSparkMax&){ return; });
@@ -156,9 +155,9 @@ private:
   rev::CANSparkMax::ControlType controlType;
 
   rev::SparkMaxPIDController pidController;
-  const Feedforward<units::radians>& feedforward;
-  units::radians_per_second_t targetVelocity;
+  units::radians_per_second_t targetVelocity = 0.0_rpm;
   units::radians_per_second_t tolerance;
+  units::radians_per_second_t maxVelcoity;
 
   std::unique_ptr<rev::MotorFeedbackSensor> encoder;
   EncoderType encoderType;
