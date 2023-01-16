@@ -6,6 +6,8 @@
 
 #include <iostream>
 
+#include <frc2/command/RunCommand.h>
+
 void DriveSubsystem::arcadeDrive(double xSpeed, double zRotation) {
   drive.arcadeDrive(xSpeed, zRotation);
 }
@@ -18,29 +20,52 @@ void DriveSubsystem::arcadeDrive(const rmb::LogitechGamepad& gamepad) {
   arcadeDrive(gamepad.GetLeftX(), gamepad.GetRightY());
 }
 
+frc2::CommandPtr DriveSubsystem::arcadeDriveCommand(const rmb::LogitechJoystick& joystick) {
+  return frc2::CommandPtr(frc2::RunCommand([&]() { arcadeDrive(joystick); }, {this}));
+}
+
+frc2::CommandPtr DriveSubsystem::arcadeDriveCommand(const rmb::LogitechGamepad& gamepad) {
+  return frc2::CommandPtr(frc2::RunCommand([&]() { arcadeDrive(gamepad); }, {this}));
+}
 
 void DriveSubsystem::curvatureDrive(double xSpeed, double zRotation, bool turnInPlace) {
   drive.curvatureDrive(xSpeed, zRotation, turnInPlace);
 }
 
-void DriveSubsystem::curvatureDrive(const rmb::LogitechJoystick& stick) {
-  curvatureDrive(stick.GetX(), stick.GetTwist(), stick.GetTrigger());
+void DriveSubsystem::curvatureDrive(const rmb::LogitechJoystick& joystick) {
+  curvatureDrive(joystick.GetX(), joystick.GetTwist(), joystick.GetTrigger());
 }
 
-void DriveSubsystem::curvatureDrive(const rmb::LogitechGamepad& controller) {
-  curvatureDrive(controller.GetLeftX(), controller.GetRightY(), controller.GetLeftBumper());
+void DriveSubsystem::curvatureDrive(const rmb::LogitechGamepad& gamepad) {
+  curvatureDrive(gamepad.GetLeftX(), gamepad.GetRightY(), gamepad.GetLeftBumper());
+}
+
+frc2::CommandPtr DriveSubsystem::curvatureDriveCommand(const rmb::LogitechJoystick& joystick) {
+  return frc2::CommandPtr(frc2::RunCommand([&]() { curvatureDrive(joystick); }, {this}));
+}
+
+frc2::CommandPtr DriveSubsystem::curvatureDriveCommand(const rmb::LogitechGamepad& gamepad) {
+  return frc2::CommandPtr(frc2::RunCommand([&]() { curvatureDrive(gamepad); }, {this}));
 }
 
 void DriveSubsystem::tankDrive(double leftSpeed, double rightSpeed) {
   drive.tankDrive(leftSpeed, rightSpeed);
 }
 
-void DriveSubsystem::tankDirve(const rmb::LogitechJoystick& left, const rmb::LogitechJoystick& right) {
+void DriveSubsystem::tankDrive(const rmb::LogitechJoystick& left, const rmb::LogitechJoystick& right) {
   tankDrive(left.GetX(), right.GetX());
 }
 
 void DriveSubsystem::tankDrive(const rmb::LogitechGamepad& gamepad) {
   tankDrive(gamepad.GetLeftX(), gamepad.GetRightX());
+}
+
+frc2::CommandPtr DriveSubsystem::tankDirveCommand(const rmb::LogitechJoystick& left, const rmb::LogitechJoystick& right) {
+  return frc2::CommandPtr(frc2::RunCommand([&]() { tankDrive(left, right); }, {this}));
+}
+
+frc2::CommandPtr DriveSubsystem::tankDriveCommand(const rmb::LogitechGamepad& gamepad) {
+  return frc2::CommandPtr(frc2::RunCommand([&]() { tankDrive(gamepad); }, {this}));
 }
 
 // This method will be called once per scheduler run

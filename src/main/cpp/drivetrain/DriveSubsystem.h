@@ -4,7 +4,12 @@
 
 #pragma once
 
+#include <frc2/command/SubsystemBase.h>
+
 #include <thread>
+
+#include <frc2/command/CommandPtr.h>
+
 #include <AHRS.h>
 
 #include <rmb/motorcontrol/feedback/LinearVelocityFeedbackController.h>
@@ -14,8 +19,6 @@
 
 #include <rmb/controller/LogitechGamepad.h>
 #include <rmb/controller/LogitechJoystick.h>
-
-#include <frc2/command/SubsystemBase.h>
 
 namespace DriveConstants {
 
@@ -36,7 +39,7 @@ namespace DriveConstants {
   };
 
   const rmb::SparkMaxVelocityController::PIDConfig pidConfig {
-    0.0 /*  <- P */ , 0.0 /* <- I */, 0.0 /* <- D */,
+    0.0 /*  <- P */ , 0.0 /* <- I */, 0.0 /* <- D */, 0.0 /* <- F */,
     0.0_rad_per_s /* <- Tolerance */, 
     0.0 /* <- iZone */, 0.0 /* <- iMaxAccumulator */,
     1.0 /* <- maxOutput */, -1.0 /* <- minOutput */
@@ -57,12 +60,6 @@ namespace DriveConstants {
     rmb::SparkMaxVelocityController::LimitSwitchConfig::Disabled /* <- reverseSwitch */
   };
 
-  const rmb::SimpleFeedforward<units::radians> feedforward { 
-    rmb::SimpleFeedforward<units::radians>::Ks_t{0.0} /* <- Ks */, 
-    rmb::SimpleFeedforward<units::radians>::Kv_t{0.0} /* <- Kv */, 
-    rmb::SimpleFeedforward<units::radians>::Ka_t{0.0} /* <- Ka */ 
-  };
-
   static frc::DifferentialDriveKinematics kinematics{ 27.75_in /* <- track width */};
 
   const units::meter_t wheelDiameter = 7_in;
@@ -77,14 +74,20 @@ class DriveSubsystem : public frc2::SubsystemBase {
   void arcadeDrive(double xSpeed, double zRotation);
   void arcadeDrive(const rmb::LogitechJoystick& joystick);
   void arcadeDrive(const rmb::LogitechGamepad& gamepad);
+  frc2::CommandPtr arcadeDriveCommand(const rmb::LogitechJoystick& joystick);
+  frc2::CommandPtr arcadeDriveCommand(const rmb::LogitechGamepad& gamepad);
 
   void curvatureDrive(double xSpeed, double zRotation, bool turnInPlace);
   void curvatureDrive(const rmb::LogitechJoystick& stick);
-  void curvatureDrive(const rmb::LogitechGamepad& controller);
+  void curvatureDrive(const rmb::LogitechGamepad& gamepad);
+  frc2::CommandPtr curvatureDriveCommand(const rmb::LogitechJoystick& stick);
+  frc2::CommandPtr curvatureDriveCommand(const rmb::LogitechGamepad& gamepad);
 
   void tankDrive(double leftSpeed, double rightSpeed);
-  void tankDirve(const rmb::LogitechJoystick& left, const rmb::LogitechJoystick& right);
+  void tankDrive(const rmb::LogitechJoystick& left, const rmb::LogitechJoystick& right);
   void tankDrive(const rmb::LogitechGamepad& gamepad);
+  frc2::CommandPtr tankDirveCommand(const rmb::LogitechJoystick& left, const rmb::LogitechJoystick& right);
+  frc2::CommandPtr tankDriveCommand(const rmb::LogitechGamepad& gamepad);
 
   /**
    * Will be called periodically whenever the CommandScheduler runs.
@@ -97,8 +100,7 @@ class DriveSubsystem : public frc2::SubsystemBase {
       (std::shared_ptr<rmb::AngularVelocityFeedbackController>)
       std::make_shared<rmb::SparkMaxVelocityController>(
         DriveConstants::leftLeader, DriveConstants::pidConfig, 
-        DriveConstants::feedforward, DriveConstants::profileConfig, 
-        DriveConstants::feedbackConfig, 
+        DriveConstants::profileConfig, DriveConstants::feedbackConfig, 
         std::initializer_list<const rmb::SparkMaxVelocityController::MotorConfig>{DriveConstants::leftFollower}
       ),
       DriveConstants::wheelDiameter / 2.0_rad
@@ -110,8 +112,7 @@ class DriveSubsystem : public frc2::SubsystemBase {
       (std::shared_ptr<rmb::AngularVelocityFeedbackController>)
       std::make_shared<rmb::SparkMaxVelocityController>(
         DriveConstants::rightLeader, DriveConstants::pidConfig, 
-        DriveConstants::feedforward, DriveConstants::profileConfig, 
-        DriveConstants::feedbackConfig, 
+        DriveConstants::profileConfig, DriveConstants::feedbackConfig, 
         std::initializer_list<const rmb::SparkMaxVelocityController::MotorConfig>{DriveConstants::rightFollower}
       ), 
       DriveConstants::wheelDiameter / 2.0_rad
