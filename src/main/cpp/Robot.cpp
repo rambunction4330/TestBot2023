@@ -1,23 +1,18 @@
-#include "Robot.hpp"
+#include "Robot.h"
 
-#include <cameraserver/CameraServer.h>
+#include <iostream>
 
-void Robot::RobotInit() {
-  // frc::CameraServer::StartAutomaticCapture();
+void Robot::RobotInit() {}
+void Robot::RobotPeriodic() {}
 
-  // leftFollow.Follow(left);
-  // rightFollow.Follow(right);
-}
+void Robot::TeleopInit() {}
+void Robot::TeleopPeriodic()  {} 
+void Robot::TeleopExit() {}
 
-void Robot::TeleopPeriodic()  {
-  // y-axis of left stick determines power
-  // x-axis of right stick turns
-  // drive.CurvatureDrive(controller.GetLeftY(),
-  // //                      controller.GetRightX(), controller.GetL1Button());
+void Robot::AutonomousInit() {}
+void Robot::AutonomousPeriodic()  {} 
+void Robot::AutonomousExit()  {} 
 
-  drive.arcadeDrive(controller);
-} 
-
-void Robot::TestPeriodic() {
-  
-}
+void Robot::TestInit() {}
+void Robot::TestPeriodic() {}
+void Robot::TestExit() {}
