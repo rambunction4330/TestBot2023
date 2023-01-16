@@ -3,7 +3,10 @@
 #include <iostream>
 
 void Robot::RobotInit() {}
-void Robot::RobotPeriodic() {}
+
+void Robot::RobotPeriodic() {
+  frc2::CommandScheduler::GetInstance().Run();
+}
 
 void Robot::TeleopInit() {}
 void Robot::TeleopPeriodic()  {} 

@@ -6,6 +6,8 @@
 #include <rmb/controller/LogitechGamepad.h>
 #include <rmb/controller/LogitechJoystick.h>
 
+#include "drivetrain/DriveSubsystem.h"
+
 #include "RobotContainer.h"
 
 class Robot : public frc::TimedRobot {
