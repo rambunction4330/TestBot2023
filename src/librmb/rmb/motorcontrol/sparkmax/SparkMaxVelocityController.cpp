@@ -25,7 +25,7 @@ SparkMaxVelocityController::SparkMaxVelocityController(const MotorConfig motorCo
   pidController.SetP(pidConfig.p);
   pidController.SetI(pidConfig.i);
   pidController.SetD(pidConfig.d);
-  pidController.SetD(pidConfig.ff);
+  pidController.SetFF(pidConfig.ff);
   pidController.SetIZone(pidConfig.iZone);
   pidController.SetIMaxAccum(pidConfig.iMaxAccumulator);
   pidController.SetOutputRange(pidConfig.minOutput, pidConfig.maxOutput);
@@ -34,8 +34,8 @@ SparkMaxVelocityController::SparkMaxVelocityController(const MotorConfig motorCo
   controlType = rev::CANSparkMax::ControlType::kVelocity;
   if (profileConfig.useSmartMotion) {
     controlType = rev::CANSparkMax::ControlType::kSmartVelocity;
-    pidController.SetSmartMotionMaxVelocity(units::revolutions_per_minute_t(profileConfig.maxVelocity).to<double>() / gearRatio);
-    pidController.SetSmartMotionMaxAccel(units::revolutions_per_minute_per_second_t(profileConfig.maxAcceleration).to<double>() / gearRatio);
+    pidController.SetSmartMotionMaxVelocity(units::revolutions_per_minute_t(profileConfig.maxVelocity).to<double>() * gearRatio);
+    pidController.SetSmartMotionMaxAccel(units::revolutions_per_minute_per_second_t(profileConfig.maxAcceleration).to<double>() * gearRatio);
     pidController.SetSmartMotionAccelStrategy(profileConfig.accelStrategy);
   }
 
@@ -96,7 +96,7 @@ SparkMaxVelocityController::SparkMaxVelocityController(const MotorConfig motorCo
 
 void SparkMaxVelocityController::setVelocity(units::radians_per_second_t velocity) {
   targetVelocity = velocity;
-  pidController.SetReference(units::revolutions_per_minute_t(targetVelocity).to<double>() / gearRatio, controlType);
+  pidController.SetReference(units::revolutions_per_minute_t(targetVelocity).to<double>() * gearRatio, controlType);
 }
 
 units::radians_per_second_t SparkMaxVelocityController::getTargetVelocity() const {
@@ -104,18 +104,21 @@ units::radians_per_second_t SparkMaxVelocityController::getTargetVelocity() cons
 }
 
 units::radians_per_second_t SparkMaxVelocityController::getMaxVelocity() const {
-  return units::revolutions_per_minute_t(pidController.GetSmartMotionMaxVelocity() * gearRatio);
+  return units::revolutions_per_minute_t(pidController.GetSmartMotionMaxVelocity() / gearRatio);
 }
 
 void SparkMaxVelocityController::setPower(double power) {
+  targetVelocity = 0.0_rad_per_s;
   sparkMax.Set(power);
 }
 
 void SparkMaxVelocityController::disable() {
+  targetVelocity = 0.0_rad_per_s;
   sparkMax.Disable();
 }
 
 void SparkMaxVelocityController::stop() {
+  targetVelocity = 0.0_rad_per_s;
   sparkMax.StopMotor();
 }
 
@@ -126,15 +129,15 @@ units::radians_per_second_t SparkMaxVelocityController::getVelocity() const {
   case EncoderType::HallSensor:
   case EncoderType::Quadrature: {
     rev::SparkMaxRelativeEncoder* rel = static_cast<rev::SparkMaxRelativeEncoder*>(encoder.get());
-    return units::revolutions_per_minute_t(rel->GetVelocity() * gearRatio);
+    return units::revolutions_per_minute_t(rel->GetVelocity() / gearRatio);
   }
   case EncoderType::Alternate: {
     rev::SparkMaxAlternateEncoder* alt = static_cast<rev::SparkMaxAlternateEncoder*>(encoder.get());
-    return units::revolutions_per_minute_t(alt->GetVelocity() * gearRatio);
+    return units::revolutions_per_minute_t(alt->GetVelocity() / gearRatio);
   }
   case EncoderType::Absolute: {
     rev::AbsoluteEncoder* ab = static_cast<rev::AbsoluteEncoder*>(encoder.get());
-    return units::revolutions_per_minute_t(ab->GetVelocity() * gearRatio);
+    return units::revolutions_per_minute_t(ab->GetVelocity() / gearRatio);
   }
   }
   return 0_rpm;
@@ -147,15 +150,15 @@ units::radian_t SparkMaxVelocityController::getPosition() const {
   case EncoderType::HallSensor:
   case EncoderType::Quadrature: {
     rev::SparkMaxRelativeEncoder* rel = static_cast<rev::SparkMaxRelativeEncoder*>(encoder.get());
-    return units::turn_t(rel->GetPosition() * gearRatio);
+    return units::turn_t(rel->GetPosition() / gearRatio);
   }
   case EncoderType::Alternate: {
     rev::SparkMaxAlternateEncoder* alt = static_cast<rev::SparkMaxAlternateEncoder*>(encoder.get());
-    return units::turn_t(alt->GetPosition() * gearRatio);
+    return units::turn_t(alt->GetPosition() / gearRatio);
   }
   case EncoderType::Absolute: {
     rev::SparkMaxAbsoluteEncoder* ab = static_cast<rev::SparkMaxAbsoluteEncoder*>(encoder.get());
-    return units::turn_t(ab->GetPosition() * gearRatio);
+    return units::turn_t(ab->GetPosition() / gearRatio);
   }
   }
   return 0_rad;
@@ -168,17 +171,17 @@ void SparkMaxVelocityController::zeroPosition(units::radian_t offset) {
   case EncoderType::HallSensor:
   case EncoderType::Quadrature: {
     rev::SparkMaxRelativeEncoder* rel = static_cast<rev::SparkMaxRelativeEncoder*>(encoder.get());
-    rel->SetPosition(units::turn_t(offset).to<double>() / gearRatio);
+    rel->SetPosition(units::turn_t(offset).to<double>() * gearRatio);
     break;
   }
   case EncoderType::Alternate: {
     rev::SparkMaxAlternateEncoder* rel = static_cast<rev::SparkMaxAlternateEncoder*>(encoder.get());
-    rel->SetPosition(units::turn_t(offset).to<double>() / gearRatio);
+    rel->SetPosition(units::turn_t(offset).to<double>() * gearRatio);
     break;
   }
   case EncoderType::Absolute: {
     rev::SparkMaxAbsoluteEncoder* ab = static_cast<rev::SparkMaxAbsoluteEncoder*>(encoder.get());
-    ab->SetZeroOffset(ab->GetPosition() + units::turn_t(offset).to<double>() / gearRatio);
+    ab->SetZeroOffset(ab->GetPosition() + units::turn_t(offset).to<double>() * gearRatio);
   }
   }
 }

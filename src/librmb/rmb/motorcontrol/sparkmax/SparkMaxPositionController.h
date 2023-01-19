@@ -43,7 +43,7 @@ namespace SparkMaxPositionControllerHelper {
     rev::SparkMaxPIDController::AccelStrategy accelStrategy = rev::SparkMaxPIDController::AccelStrategy::kTrapezoidal;
   };
 
-  enum EncoderType { HallSensor, Quadrature, Alternate, Absolute};
+  enum EncoderType { HallSensor, Quadrature, Alternate, Absolute };
   enum LimitSwitchConfig { Disabled, NormalyOpen, NormalyClosed };
 
   struct FeedbackConfig {

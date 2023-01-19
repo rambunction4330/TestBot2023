@@ -19,9 +19,16 @@ class RobotContainer {
  public:
   RobotContainer();
 
+  void scheduleAutoCommand();
+
  private:
   void ConfigureBindings();
 
-  rmb::LogitechGamepad driveGamepad{0};
+  rmb::LogitechGamepad driveGamepad{0, 0.1, true};
   DriveSubsystem driveSubsystem;
+
+  // Holds the autonomus command thats currently being used because the 
+  // for some reason the command schedueler refuses to take ownership
+  // of it.
+  frc2::CommandPtr autoCommand{frc2::PrintCommand("THERE'S NO AUTO")};
 };

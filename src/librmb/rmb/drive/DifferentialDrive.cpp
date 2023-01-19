@@ -6,7 +6,7 @@ namespace rmb {
 
 DifferentialDrive::DifferentialDrive(std::shared_ptr<LinearVelocityController> l, 
                                      std::shared_ptr<LinearVelocityController> r,
-                                     frc::DifferentialDriveKinematics& k) : 
+                                     frc::DifferentialDriveKinematics k) : 
                                      left(l), right(r), kinematics(k) {}
 
 void DifferentialDrive::arcadeDrive(double xSpeed, double zRotation) {
@@ -26,6 +26,11 @@ void DifferentialDrive::tankDrive(double leftSpeed, double rightSpeed) {
   left->setPower(wheelSpeeds.left);
   right->setPower(wheelSpeeds.right);
 }
+
+ void DifferentialDrive::driveWheelSpeeds(units::meters_per_second_t leftVelocity, units::meters_per_second_t rightVelocity) {
+  left->setVelocity(leftVelocity);
+  right->setVelocity(rightVelocity);
+ }
 
 void DifferentialDrive::driveWheelSpeeds(frc::DifferentialDriveWheelSpeeds wheelSpeeds) {
   left->setVelocity(wheelSpeeds.left);

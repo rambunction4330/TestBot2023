@@ -6,7 +6,12 @@
 
 #include <iostream>
 
+#include <wpi/raw_ostream.h>
+
+#include <units/base.h>
+
 #include <frc2/command/RunCommand.h>
+#include <frc2/command/RamseteCommand.h>
 
 void DriveSubsystem::arcadeDrive(double xSpeed, double zRotation) {
   drive.arcadeDrive(xSpeed, zRotation);
@@ -17,7 +22,7 @@ void DriveSubsystem::arcadeDrive(const rmb::LogitechJoystick& joystick) {
 }
 
 void DriveSubsystem::arcadeDrive(const rmb::LogitechGamepad& gamepad) {
-  arcadeDrive(gamepad.GetLeftX(), gamepad.GetRightY());
+  arcadeDrive(gamepad.GetLeftX(), -gamepad.GetRightY());
 }
 
 frc2::CommandPtr DriveSubsystem::arcadeDriveCommand(const rmb::LogitechJoystick& joystick) {
@@ -57,7 +62,7 @@ void DriveSubsystem::tankDrive(const rmb::LogitechJoystick& left, const rmb::Log
 }
 
 void DriveSubsystem::tankDrive(const rmb::LogitechGamepad& gamepad) {
-  tankDrive(gamepad.GetLeftX(), gamepad.GetRightX());
+  tankDrive(gamepad.GetLeftX(), -gamepad.GetRightX());
 }
 
 frc2::CommandPtr DriveSubsystem::tankDirveCommand(const rmb::LogitechJoystick& left, const rmb::LogitechJoystick& right) {
@@ -68,7 +73,49 @@ frc2::CommandPtr DriveSubsystem::tankDriveCommand(const rmb::LogitechGamepad& ga
   return frc2::CommandPtr(frc2::RunCommand([&]() { tankDrive(gamepad); }, {this}));
 }
 
+void DriveSubsystem::resetOdometry(frc::Pose2d pose) {
+  odometry.resetPose(pose);
+}
+
+frc::Pose2d DriveSubsystem::getPose() const {
+  return odometry.getPose();
+}
+
+frc::DifferentialDriveWheelSpeeds DriveSubsystem::getWheelSpeeds() const {
+  return {left->getVelocity(), right->getVelocity() };
+}
+
+frc::ChassisSpeeds DriveSubsystem::getChassisSpeeds() const {
+  return DriveConstants::kinematics.ToChassisSpeeds(getWheelSpeeds());
+}
+
+void DriveSubsystem::driveWheelSpeeds(units::meters_per_second_t left, units::meters_per_second_t right) {
+  drive.driveWheelSpeeds(left, right);
+}
+
+void DriveSubsystem::driveWheelSpeeds(frc::DifferentialDriveWheelSpeeds wheelSpeeds) {
+  drive.driveWheelSpeeds(wheelSpeeds);
+}
+
+void DriveSubsystem::driveChassisSpeeds(frc::ChassisSpeeds chassisSpeeds) {
+  drive.driveChassisSpeeds(chassisSpeeds);
+}
+
+// Trajectory Following
+frc2::CommandPtr DriveSubsystem::getTrajectoryCommand(frc::Trajectory trajectory) {
+  return frc2::CommandPtr(frc2::RamseteCommand(
+    trajectory, [&]() { return getPose(); }, DriveConstants::ramseteController,
+    DriveConstants::kinematics, 
+    [&](units::meters_per_second_t leftVelocity, units::meters_per_second_t rightVelocity) { driveWheelSpeeds(leftVelocity, rightVelocity); },
+    {this}
+  ));
+}
+
 // This method will be called once per scheduler run
 void DriveSubsystem::Periodic() {
-  odometry.updatePose();
+  auto pose = odometry.updatePose();
+  // std::cout << "(X: " << units::length::to_string(pose.X())
+  //           << ", Y: " << units::length::to_string(pose.Y())
+  //           << ", Theta: " << units::angle::to_string(pose.Rotation().Degrees())
+  //           << ")" << std::endl;
 }

@@ -1,6 +1,9 @@
 #include "Robot.h"
 
 #include <iostream>
+#include <frc/trajectory/TrajectoryGenerator.h>
+#include <frc/trajectory/TrajectoryConfig.h>
+#include <frc2/command/PrintCommand.h>
 
 void Robot::RobotInit() {}
 
@@ -12,7 +15,9 @@ void Robot::TeleopInit() {}
 void Robot::TeleopPeriodic()  {} 
 void Robot::TeleopExit() {}
 
-void Robot::AutonomousInit() {}
+void Robot::AutonomousInit() {
+  container.scheduleAutoCommand();
+}
 void Robot::AutonomousPeriodic()  {} 
 void Robot::AutonomousExit()  {} 
 

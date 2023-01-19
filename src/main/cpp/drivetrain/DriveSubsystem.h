@@ -8,7 +8,12 @@
 
 #include <thread>
 
+#include <units/acceleration.h>
+
 #include <frc2/command/CommandPtr.h>
+#include <frc/controller/RamseteController.h>
+#include <frc/trajectory/Trajectory.h>
+#include <frc/trajectory/TrajectoryConfig.h>
 
 #include <AHRS.h>
 
@@ -19,50 +24,56 @@
 
 #include <rmb/controller/LogitechGamepad.h>
 #include <rmb/controller/LogitechJoystick.h>
+#include <frc2/command/PrintCommand.h>
 
 namespace DriveConstants {
 
   const rmb::SparkMaxVelocityController::MotorConfig leftLeader {
-    11, rev::CANSparkMax::MotorType::kBrushless, true
+    1, rev::CANSparkMax::MotorType::kBrushless, false
   };
 
   const rmb::SparkMaxVelocityController::MotorConfig leftFollower {
-    12, rev::CANSparkMax::MotorType::kBrushless, false
+    2, rev::CANSparkMax::MotorType::kBrushless, false
   };
 
   const rmb::SparkMaxVelocityController::MotorConfig rightLeader {
-    21, rev::CANSparkMax::MotorType::kBrushless, false
+    3, rev::CANSparkMax::MotorType::kBrushless, true
   };
 
   const rmb::SparkMaxVelocityController::MotorConfig rightFollower {
-    22, rev::CANSparkMax::MotorType::kBrushless, false
+    4, rev::CANSparkMax::MotorType::kBrushless, false
   };
 
   const rmb::SparkMaxVelocityController::PIDConfig pidConfig {
-    0.0 /*  <- P */ , 0.0 /* <- I */, 0.0 /* <- D */, 0.0 /* <- F */,
+    0.00015 /*  <- P */ , 0.0000009 /* <- I */, 0.001 /* <- D */, 0.0002 /* <- FF */,
     0.0_rad_per_s /* <- Tolerance */, 
     0.0 /* <- iZone */, 0.0 /* <- iMaxAccumulator */,
     1.0 /* <- maxOutput */, -1.0 /* <- minOutput */
   };
 
+  const units::meter_t wheelDiameter = 6_in;
+
   const rmb::SparkMaxVelocityController::ProfileConfig profileConfig {
     false /* <- useSmartMotion */, 
-    0.0_rad_per_s /* <- maxVelocity */, 0.0_rad_per_s /* <- minVelocity */,
-    0.0_rad_per_s_sq /* <- maxAcceleration */,
+    3.75_mps * (2_rad / wheelDiameter) /* <- maxVelocity */, 0.0_rad_per_s /* <- minVelocity */,
+    2.0_mps_sq * (2_rad / wheelDiameter)  /* <- maxAcceleration */,
     rev::SparkMaxPIDController::AccelStrategy::kTrapezoidal /* <- accelStrategy */
   };
 
   const rmb::SparkMaxVelocityController::FeedbackConfig feedbackConfig {
-    1.0 /* <- gearRatio */, 
+    10.71 /* <- gearRatio */, 
     rmb::SparkMaxVelocityController::EncoderType::HallSensor/* <- encoderType */,
     42 /* <- countPerRev */,
     rmb::SparkMaxVelocityController::LimitSwitchConfig::Disabled /* <- forwardSwitch */,
     rmb::SparkMaxVelocityController::LimitSwitchConfig::Disabled /* <- reverseSwitch */
   };
 
-  static frc::DifferentialDriveKinematics kinematics{ 27.75_in /* <- track width */};
+  static const frc::RamseteController ramseteController {
+    units::unit_t<frc::RamseteController::b_unit>(5.0) /* <- b */,
+    units::unit_t<frc::RamseteController::zeta_unit>(0.6) /* <- zeta */ 
+  };
 
-  const units::meter_t wheelDiameter = 7_in;
+  static frc::DifferentialDriveKinematics kinematics{ 27.75_in /* <- track width */};
 
   const frc::SerialPort::Port gyroPort = frc::SerialPort::Port::kMXP;
 }
@@ -71,6 +82,7 @@ class DriveSubsystem : public frc2::SubsystemBase {
  public:
   DriveSubsystem() = default;
 
+  // Teleop Drive Fucntions
   void arcadeDrive(double xSpeed, double zRotation);
   void arcadeDrive(const rmb::LogitechJoystick& joystick);
   void arcadeDrive(const rmb::LogitechGamepad& gamepad);
@@ -88,6 +100,19 @@ class DriveSubsystem : public frc2::SubsystemBase {
   void tankDrive(const rmb::LogitechGamepad& gamepad);
   frc2::CommandPtr tankDirveCommand(const rmb::LogitechJoystick& left, const rmb::LogitechJoystick& right);
   frc2::CommandPtr tankDriveCommand(const rmb::LogitechGamepad& gamepad);
+
+  // Odometry Fucntions
+  void resetOdometry(frc::Pose2d pose = frc::Pose2d());
+  frc::Pose2d getPose() const;
+  frc::DifferentialDriveWheelSpeeds getWheelSpeeds() const;
+  frc::ChassisSpeeds getChassisSpeeds() const;
+
+
+  // Auto Driving
+  void driveWheelSpeeds(units::meters_per_second_t left, units::meters_per_second_t right);
+  void driveWheelSpeeds(frc::DifferentialDriveWheelSpeeds wheelSpeeds);
+  void driveChassisSpeeds(frc::ChassisSpeeds chassisSpeeds);
+  frc2::CommandPtr getTrajectoryCommand(frc::Trajectory trajectory);
 
   /**
    * Will be called periodically whenever the CommandScheduler runs.

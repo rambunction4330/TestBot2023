@@ -5,6 +5,8 @@
 
 #include <rmb/controller/LogitechGamepad.h>
 #include <rmb/controller/LogitechJoystick.h>
+#include <frc/trajectory/TrajectoryGenerator.h>
+#include <frc/trajectory/TrajectoryConfig.h>
 
 #include "drivetrain/DriveSubsystem.h"
 
