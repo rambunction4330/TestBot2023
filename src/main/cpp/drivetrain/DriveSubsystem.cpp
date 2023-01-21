@@ -113,9 +113,5 @@ frc2::CommandPtr DriveSubsystem::getTrajectoryCommand(frc::Trajectory trajectory
 
 // This method will be called once per scheduler run
 void DriveSubsystem::Periodic() {
-  auto pose = odometry.updatePose();
-  // std::cout << "(X: " << units::length::to_string(pose.X())
-  //           << ", Y: " << units::length::to_string(pose.Y())
-  //           << ", Theta: " << units::angle::to_string(pose.Rotation().Degrees())
-  //           << ")" << std::endl;
+  odometry.updatePose();
 }

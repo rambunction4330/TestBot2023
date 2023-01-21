@@ -70,11 +70,6 @@ frc::Pose2d DifferentialOdometry::updatePose() {
 
 
 void DifferentialOdometry::resetPose(const frc::Pose2d& pose) {
-  // leftEncoder->zeroPosition();
-  // rightEncoder->zeroPosition();
-  gyro->Reset();
-  
-
   std::lock_guard<std::mutex> lock(visionThreadMutex);
   poseEstimator.ResetPosition(gyro->GetRotation2d(), 
                               leftEncoder->getPosition(), 
