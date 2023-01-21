@@ -114,6 +114,10 @@ class DriveSubsystem : public frc2::SubsystemBase {
   void driveChassisSpeeds(frc::ChassisSpeeds chassisSpeeds);
   frc2::CommandPtr getTrajectoryCommand(frc::Trajectory trajectory);
 
+  // Balancing
+  units::radian_t getRobotPitch();
+  void stop();
+
   /**
    * Will be called periodically whenever the CommandScheduler runs.
    */
@@ -148,9 +152,11 @@ class DriveSubsystem : public frc2::SubsystemBase {
     left, right, DriveConstants::kinematics 
   };
 
+  std::shared_ptr<AHRS> gyro = std::make_shared<AHRS>(DriveConstants::gyroPort); 
+
   rmb::DifferentialOdometry odometry { 
     left, right, 
     DriveConstants::kinematics, 
-    std::make_shared<AHRS>(DriveConstants::gyroPort) 
+    gyro
   };
 };
