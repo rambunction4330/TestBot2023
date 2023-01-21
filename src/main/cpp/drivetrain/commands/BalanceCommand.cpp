@@ -16,19 +16,31 @@ BalanceCommand::BalanceCommand(DriveSubsystem& drive, bool r) :
 
 // Called when the command is initially scheduled.
 void BalanceCommand::Initialize() {
+
+  // Resets corrdinate system of command without effecting the rest of the robot.
   offset = driveSubsystem.getPose();
+
+  // Sets min, max and inital goal besed on reverse state
+  goal *= reversed;
+  goal *= minX;
+  goal *= maxX;
 }
 
 // Called repeatedly when this Command is scheduled to run
 void BalanceCommand::Execute() {
-  goal = std::clamp(goal + (driveSubsystem.getRobotPitch() * -gain), minX, maxX) * reversed;
+  // Increments goal based on gain robot pitch
+  goal += (-driveSubsystem.getRobotPitch() * gain);
+  goal = std::clamp(goal, minX, maxX);
   
+  // Genrates profile
   frc::TrapezoidProfile<units::meters> profile = {constraints, 
                                                   {goal, 0.0_mps}, 
                                                   {(driveSubsystem.getPose() - offset).X(), driveSubsystem.getChassisSpeeds().vx}};
 
+  // Drives profile
   driveSubsystem.driveChassisSpeeds({profile.Calculate(20_ms).velocity, 0.0_mps, 0.0_rpm});
 
+  // Start timer if level and reset of not
   if (units::math::abs(driveSubsystem.getRobotPitch()) < 2.5_deg) {
     balanceTimer.Start();
   } else {
@@ -44,5 +56,6 @@ void BalanceCommand::End(bool interrupted) {
 
 // Returns true when the command should end.
 bool BalanceCommand::IsFinished() {
+  // Aftering being level for 0.5 seconds the command ends
   return balanceTimer.Get() > 0.5_s;
 }
