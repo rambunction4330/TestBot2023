@@ -111,11 +111,16 @@ frc2::CommandPtr DriveSubsystem::getTrajectoryCommand(frc::Trajectory trajectory
   ));
 }
 
+units::radian_t DriveSubsystem::getRobotPitch() {
+  return units::degree_t(gyro->GetRoll());
+}
+
+void DriveSubsystem::stop() {
+  left->stop();
+  right->stop();
+}
+
 // This method will be called once per scheduler run
 void DriveSubsystem::Periodic() {
-  auto pose = odometry.updatePose();
-  // std::cout << "(X: " << units::length::to_string(pose.X())
-  //           << ", Y: " << units::length::to_string(pose.Y())
-  //           << ", Theta: " << units::angle::to_string(pose.Rotation().Degrees())
-  //           << ")" << std::endl;
+  odometry.updatePose();
 }
