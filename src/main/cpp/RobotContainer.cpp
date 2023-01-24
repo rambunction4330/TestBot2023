@@ -10,10 +10,12 @@
 #include <frc/trajectory/TrajectoryGenerator.h>
 #include <frc/trajectory/Trajectory.h>
 
-#include "drivetrain/commands/BalanceCommand.h"
+#include <frc2/command/ScheduleCommand.h>
+#include <frc2/command/Commands.h>
+#include <frc2/command/CommandPtr.h>
+#include <frc2/command/SequentialCommandGroup.h>
 
 RobotContainer::RobotContainer() {
-  // Set Default Commands
   // driveSubsystem.SetDefaultCommand(driveSubsystem.arcadeDriveCommand(driveGamepad));
 
   // Configure the button bindings
@@ -47,4 +49,9 @@ void RobotContainer::scheduleAutoCommand() {
 
 void RobotContainer::ConfigureBindings() {
   // Configure your trigger bindings here
+  driveGamepad.A().WhileTrue(frc2::CommandPtr(frc2::cmd::Wait(0.5_s)).AndThen(LedSubsystem.ledIncreaseCommand()).AndThen(LedSubsystem.SetledToCommand()).Repeatedly());
+  driveGamepad.B().WhileTrue(frc2::CommandPtr(frc2::CommandPtr(frc2::InstantCommand([&] { LedSubsystem.setledToThis(LedSubsystem.red); }))));
+  driveGamepad.X().WhileTrue(frc2::CommandPtr(frc2::CommandPtr(frc2::InstantCommand([&] { LedSubsystem.setledToThis(LedSubsystem.blue); }))));
+  driveGamepad.Y().WhileTrue(frc2::CommandPtr(frc2::CommandPtr(frc2::InstantCommand([&] { LedSubsystem.setledToThis(LedSubsystem.yellow); }))));
+  // search up rev robotics led docs to customize the led colors and pass them into the parameters
 }

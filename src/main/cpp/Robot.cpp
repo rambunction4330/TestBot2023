@@ -5,6 +5,12 @@
 #include <frc/trajectory/TrajectoryConfig.h>
 #include <frc2/command/PrintCommand.h>
 
+/* Yeah */
+
+// Yeah
+// Yeah
+// Frank Norris is cool
+
 void Robot::RobotInit() {}
 
 void Robot::RobotPeriodic() {

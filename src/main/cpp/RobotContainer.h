@@ -8,6 +8,8 @@
 
 #include "drivetrain/DriveSubsystem.h"
 
+#include "led/ledSubsystem.h"
+
 /**
  * This class is where the bulk of the robot should be declared.  Since
  * Command-based is a "declarative" paradigm, very little robot logic should
@@ -26,6 +28,7 @@ class RobotContainer {
 
   rmb::LogitechGamepad driveGamepad{0, 0.1, true};
   DriveSubsystem driveSubsystem;
+  ledSubsystem LedSubsystem;
 
   // Holds the autonomus command thats currently being used because the 
   // for some reason the command schedueler refuses to take ownership
