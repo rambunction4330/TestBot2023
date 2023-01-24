@@ -21,7 +21,7 @@ class ledSubsystem : public frc2::SubsystemBase {
     frc2::CommandPtr SetledToCommand();
     frc2::CommandPtr setledToThisCommand(double numbere);
     
-    // robotcontainer needs access to these variables and I can't put them into namespace or else more error
+    // robotcontainer needs access to these variables
     const double red = -0.25;
     const double blue = -0.23;
     const double yellow = 0.69;
